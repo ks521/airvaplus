@@ -371,6 +371,71 @@ if (window.matchMedia('(prefers-reduced-motion: no-preference)').matches) {
 
 
 /* ════════════════════════════════════════════════
+   8b. PRODUCT GALLERY — Swipe album controls
+════════════════════════════════════════════════ */
+(function initGallery() {
+  const track  = document.getElementById('galleryTrack');
+  const prev   = document.getElementById('galleryPrev');
+  const next   = document.getElementById('galleryNext');
+  const dotsEl = document.getElementById('galleryDots');
+  if (!track) return;
+
+  const slides = Array.from(track.querySelectorAll('.gallery-slide'));
+
+  // Reveal-on-scroll for each slide (separate from the global .reveal
+  // observer so slides animate as they swipe into view, not just once
+  // on page load)
+  const slideObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) entry.target.classList.add('visible');
+      });
+    },
+    { threshold: 0.15 }
+  );
+  slides.forEach(slide => slideObserver.observe(slide));
+
+  // Build dots
+  slides.forEach((_, i) => {
+    const dot = document.createElement('button');
+    dot.className = 'gallery-dot';
+    dot.setAttribute('aria-label', `Go to product ${i + 1}`);
+    dot.addEventListener('click', () => {
+      slides[i].scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+    });
+    dotsEl.appendChild(dot);
+  });
+  const dots = Array.from(dotsEl.children);
+
+  // Highlight the active dot based on which slide is most in view
+  const dotObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach(entry => {
+        const idx = slides.indexOf(entry.target);
+        if (idx === -1) return;
+        if (entry.isIntersecting) {
+          dots.forEach(d => d.classList.remove('active'));
+          dots[idx].classList.add('active');
+        }
+      });
+    },
+    { root: track, threshold: 0.6 }
+  );
+  slides.forEach(slide => dotObserver.observe(slide));
+  if (dots[0]) dots[0].classList.add('active');
+
+  // Arrow controls scroll by one slide's width (+ gap)
+  function scrollByOne(dir) {
+    const slideWidth = slides[0].getBoundingClientRect().width;
+    const gap = parseFloat(getComputedStyle(track).gap) || 28;
+    track.scrollBy({ left: dir * (slideWidth + gap), behavior: 'smooth' });
+  }
+  if (prev) prev.addEventListener('click', () => scrollByOne(-1));
+  if (next) next.addEventListener('click', () => scrollByOne(1));
+})();
+
+
+/* ════════════════════════════════════════════════
    9. PRODUCT CARDS — Hover tilt
 ════════════════════════════════════════════════ */
 document.querySelectorAll('.product-card').forEach(card => {
